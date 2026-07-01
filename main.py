@@ -19,25 +19,25 @@ from pathlib import Path
 
 # ============================================================
 # 论文格式规范 → md-to-docx 参数映射
-# 数据来源：GB/T 7713.1-2006、GB/T 7714-2025、河北大学学位论文规范、
-#           APA 7th、MLA 9th、Chicago Manual of Style、IMRaD
+# 数据来源：GB/T 7713.1-2006、GB/T 7714-2025、APA 7th、MLA 9th、
+#           Chicago Manual of Style、IMRaD、中国人民大学学位论文规范
 # ============================================================
 
 FORMAT_PRESETS = {
-    # ---- 中文学位论文 (GB/T 7713.1 + GB/T 7714-2025 + 河北大学学位论文规范) ----
+    # ---- 中文学位论文 (GB/T 7713.1 + GB/T 7714-2025 + 通用排版参数) ----
     "gbt7714": {
         "display_name": "GB/T 7714-2025 学位论文格式",
-        "description": "依据GB/T 7713.1-2006结构框架 + GB/T 7714-2025引用规范 + 河北大学学位论文撰写规范排版参数（A4，上34mm/下25mm/左25mm/右25mm，正文宋体小四/标题黑体/1.5倍行距）",
+        "description": "依据GB/T 7713.1-2006结构框架 + GB/T 7714-2025引用规范 + 通用中文学位论文排版参数（A4，上2.54cm/下2.54cm/左3.17cm/右3.17cm，正文宋体小四/标题黑体三号/1.5倍行距）。适用于大多数中文学位论文通用场景，特殊高校规范请使用自定义覆写或选择专有预设",
         "options": {
             "fontFamily": "宋体",
-            "paragraphSize": 12,          # 小四号 ≈ 12pt（表5-6正文）
-            "headingFontFamily": "黑体",  # 标题黑体（表5-6）
-            "headingSize": 16,            # 章标题三号 ≈ 16pt（表5-6）
-            "lineSpacing": 1.5,           # 1.5倍行距（表5-6正文及标题）
-            "pageMarginTop": 3.4,         # 上 34mm（表5-1）
-            "pageMarginBottom": 2.5,      # 下 25mm（表5-1）
-            "pageMarginLeft": 2.5,        # 左 25mm（表5-1）
-            "pageMarginRight": 2.5,       # 右 25mm（表5-1）
+            "paragraphSize": 12,          # 小四号 ≈ 12pt
+            "headingFontFamily": "黑体",
+            "headingSize": 16,            # 章标题三号 ≈ 16pt
+            "lineSpacing": 1.5,
+            "pageMarginTop": 2.54,
+            "pageMarginBottom": 2.54,
+            "pageMarginLeft": 3.17,
+            "pageMarginRight": 3.17,
         },
         "sections": [
             {"type": "cover", "title": "封面"},
@@ -49,7 +49,33 @@ FORMAT_PRESETS = {
             {"type": "references", "title": "参考文献"},
             {"type": "appendix", "title": "附录"},
             {"type": "acknowledgement", "title": "致谢"},
-            {"type": "achievements", "title": "个人简介及研究成果"},
+        ],
+    },
+
+    # ---- 中国人民大学研究生学位论文规范 (grs.ruc.edu.cn) ----
+    "ruc": {
+        "display_name": "中国人民大学研究生学位论文",
+        "description": "严格按照中国人民大学研究生院《研究生学位论文及其摘要的撰写和印制要求》（2018）排版参数（A4，上45mm/下40mm/左35mm/右30mm，正文宋体小四/章标题黑体小二号18pt/固定行距20pt≈1.67倍）。适合凝筝（陈尧）日常使用的RUC学位论文格式。注意：一级节标题(1.1)应为黑体小三号14pt、二级节标题(1.1.1)应为黑体小四号12pt，当前md-to-docx仅支持统一headingSize，节标题层级差异需后处理调整",
+        "options": {
+            "fontFamily": "宋体",
+            "paragraphSize": 12,          # 正文小四号12pt
+            "headingFontFamily": "黑体",
+            "headingSize": 18,            # 章标题小二号18pt（人大规范）
+            "lineSpacing": 1.67,          # 固定行距20pt / 12pt ≈ 1.67倍
+            "pageMarginTop": 4.5,         # 上45mm
+            "pageMarginBottom": 4.0,      # 下40mm
+            "pageMarginLeft": 3.5,        # 左35mm
+            "pageMarginRight": 3.0,       # 右30mm
+        },
+        "sections": [
+            {"type": "cover", "title": "封面"},
+            {"type": "declaration", "title": "独创性声明及论文使用授权说明"},
+            {"type": "abstract", "title": "中文摘要"},
+            {"type": "abstract_en", "title": "Abstract"},
+            {"type": "toc", "title": "目录"},
+            {"type": "body", "title": "正文"},
+            {"type": "references", "title": "参考文献"},
+            {"type": "acknowledgement", "title": "致谢"},
         ],
     },
 
