@@ -24,23 +24,24 @@ from pathlib import Path
 # ============================================================
 
 FORMAT_PRESETS = {
-    # ---- 中文学位论文 (GB/T 7713.1 + GB/T 7714-2025 + 高校通用参数) ----
+    # ---- 中文学位论文 (GB/T 7713.1 + GB/T 7714-2025 + 河北大学学位论文规范) ----
     "gbt7714": {
         "display_name": "GB/T 7714-2025 学位论文格式",
-        "description": "依据GB/T 7713.1-2006结构框架 + GB/T 7714-2025引用规范 + 高校通用排版参数（正文字体宋体、标题黑体、小四号正文、1.5倍行距）",
+        "description": "依据GB/T 7713.1-2006结构框架 + GB/T 7714-2025引用规范 + 河北大学学位论文撰写规范排版参数（A4，上34mm/下25mm/左25mm/右25mm，正文宋体小四/标题黑体/1.5倍行距）",
         "options": {
             "fontFamily": "宋体",
-            "paragraphSize": 12,          # 小四号 ≈ 12pt
-            "headingFontFamily": "黑体",
-            "headingSize": 15,            # 一级标题小三 ≈ 15pt
-            "lineSpacing": 1.5,
-            "pageMarginTop": 2.54,        # 上 2.54cm
-            "pageMarginBottom": 2.54,     # 下 2.54cm
-            "pageMarginLeft": 3.17,       # 左 3.17cm（装订侧）
-            "pageMarginRight": 3.17,      # 右 3.17cm
+            "paragraphSize": 12,          # 小四号 ≈ 12pt（表5-6正文）
+            "headingFontFamily": "黑体",  # 标题黑体（表5-6）
+            "headingSize": 16,            # 章标题三号 ≈ 16pt（表5-6）
+            "lineSpacing": 1.5,           # 1.5倍行距（表5-6正文及标题）
+            "pageMarginTop": 3.4,         # 上 34mm（表5-1）
+            "pageMarginBottom": 2.5,      # 下 25mm（表5-1）
+            "pageMarginLeft": 2.5,        # 左 25mm（表5-1）
+            "pageMarginRight": 2.5,       # 右 25mm（表5-1）
         },
         "sections": [
             {"type": "cover", "title": "封面"},
+            {"type": "declaration", "title": "声明"},
             {"type": "abstract", "title": "摘要"},
             {"type": "abstract_en", "title": "Abstract"},
             {"type": "toc", "title": "目录"},
@@ -48,8 +49,8 @@ FORMAT_PRESETS = {
             {"type": "references", "title": "参考文献"},
             {"type": "appendix", "title": "附录"},
             {"type": "acknowledgement", "title": "致谢"},
+            {"type": "achievements", "title": "个人简介及研究成果"},
         ],
-        "csl_style": "gb-t-7714-2025-numeric",  # GB/T 7714 顺序编码制
     },
 
     # ---- APA 7th Edition ----
@@ -119,8 +120,8 @@ FORMAT_PRESETS = {
         "description": "Introduction-Methods-Results-Discussion 标准科学论文结构。自然科学、医学、工程学投稿常用",
         "options": {
             "fontFamily": "Times New Roman",
-            "paragraphSize": 11,
-            "lineSpacing": 1.5,
+            "paragraphSize": 12,
+            "lineSpacing": 2.0,
             "pageMarginTop": 2.54,
             "pageMarginBottom": 2.54,
             "pageMarginLeft": 2.54,
