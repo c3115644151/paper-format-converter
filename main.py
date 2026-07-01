@@ -39,17 +39,6 @@ FORMAT_PRESETS = {
             "pageMarginLeft": 3.17,
             "pageMarginRight": 3.17,
         },
-        "sections": [
-            {"type": "cover", "title": "封面"},
-            {"type": "declaration", "title": "声明"},
-            {"type": "abstract", "title": "摘要"},
-            {"type": "abstract_en", "title": "Abstract"},
-            {"type": "toc", "title": "目录"},
-            {"type": "body", "title": "正文"},
-            {"type": "references", "title": "参考文献"},
-            {"type": "appendix", "title": "附录"},
-            {"type": "acknowledgement", "title": "致谢"},
-        ],
     },
 
     # ---- 中国人民大学研究生学位论文规范 (grs.ruc.edu.cn) ----
@@ -67,16 +56,6 @@ FORMAT_PRESETS = {
             "pageMarginLeft": 3.5,        # 左35mm
             "pageMarginRight": 3.0,       # 右30mm
         },
-        "sections": [
-            {"type": "cover", "title": "封面"},
-            {"type": "declaration", "title": "独创性声明及论文使用授权说明"},
-            {"type": "abstract", "title": "中文摘要"},
-            {"type": "abstract_en", "title": "Abstract"},
-            {"type": "toc", "title": "目录"},
-            {"type": "body", "title": "正文"},
-            {"type": "references", "title": "参考文献"},
-            {"type": "acknowledgement", "title": "致谢"},
-        ],
     },
 
     # ---- APA 7th Edition ----
@@ -92,13 +71,6 @@ FORMAT_PRESETS = {
             "pageMarginLeft": 2.54,
             "pageMarginRight": 2.54,
         },
-        "sections": [
-            {"type": "title_page", "title": ""},
-            {"type": "abstract", "title": "Abstract"},
-            {"type": "body", "title": ""},
-            {"type": "references", "title": "References"},
-            {"type": "appendix", "title": "Appendix"},
-        ],
     },
 
     # ---- MLA 9th Edition ----
@@ -114,10 +86,6 @@ FORMAT_PRESETS = {
             "pageMarginLeft": 2.54,
             "pageMarginRight": 2.54,
         },
-        "sections": [
-            {"type": "body", "title": ""},
-            {"type": "works_cited", "title": "Works Cited"},
-        ],
     },
 
     # ---- Chicago Manual of Style (Notes-Bibliography) ----
@@ -133,11 +101,6 @@ FORMAT_PRESETS = {
             "pageMarginLeft": 2.54,
             "pageMarginRight": 2.54,
         },
-        "sections": [
-            {"type": "title_page", "title": ""},
-            {"type": "body", "title": ""},
-            {"type": "bibliography", "title": "Bibliography"},
-        ],
     },
 
     # ---- IMRaD 国际学术论文结构 ----
@@ -153,16 +116,6 @@ FORMAT_PRESETS = {
             "pageMarginLeft": 2.54,
             "pageMarginRight": 2.54,
         },
-        "sections": [
-            {"type": "title_page", "title": ""},
-            {"type": "abstract", "title": "Abstract"},
-            {"type": "introduction", "title": "Introduction"},
-            {"type": "methods", "title": "Methods"},
-            {"type": "results", "title": "Results"},
-            {"type": "discussion", "title": "Discussion"},
-            {"type": "conclusion", "title": "Conclusion"},
-            {"type": "references", "title": "References"},
-        ],
     },
 }
 
