@@ -37,7 +37,7 @@ FORMAT_PRESETS = {
     # 格式依据：多所高校（北大、清华、武大等）通用学术论文排版规范
     #   页边距: 上2.5cm,下2.5cm,左3.0cm,右2.0cm
     #   正文: 宋体小四(12pt)首行缩进2字符1.5倍行距两端对齐
-    #   一级标题: 黑体三号(16pt)居中,段前24pt段后12pt
+    #   一级标题: 黑体三号(16pt)左对齐,段前24pt段后12pt
     #   二级标题: 黑体四号(14pt)左对齐,段前12pt段后6pt
     #   三级标题: 黑体小四(12pt)加粗左对齐,段前6pt段后3pt
     # ============================================================
@@ -203,7 +203,7 @@ def apply_chinese_formatting(docx_path: str, verbose: bool = False) -> None:
 
     依据高校通用学术论文排版规范 全面校正格式：
     - 正文：宋体小四(12pt)，1.5倍行距，首行缩进2字符，两端对齐
-    - 一级标题(章)：黑体三号(16pt)，居中，段前24pt段后12pt
+    - 一级标题(章)：黑体三号(16pt)，左对齐，段前24pt段后12pt
     - 二级标题(节)：黑体四号(14pt)，左对齐，段前12pt段后6pt
     - 三级标题(子节)：黑体小四(12pt)加粗，左对齐，段前6pt段后3pt
     - 英数：Times New Roman
@@ -313,10 +313,10 @@ def apply_chinese_formatting(docx_path: str, verbose: bool = False) -> None:
         level = classify_paragraph(para, idx)
 
         if level == 'heading1':
-            # 章标题：黑体三号(16pt)居中 段前24pt段后12pt
+            # 章标题：黑体三号(16pt)左对齐 段前24pt段后12pt
             for run in para.runs:
                 set_run_font(run, '黑体', 'Times New Roman', SIZE_H1, bold=True)
-            pf.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            pf.alignment = WD_ALIGN_PARAGRAPH.LEFT
             pf.first_line_indent = None
             pf.space_before = SPACE_BEFORE_H1
             pf.space_after = SPACE_AFTER_H1
@@ -357,7 +357,7 @@ def apply_chinese_formatting(docx_path: str, verbose: bool = False) -> None:
         print(f"[后处理] 中文论文格式已应用："
               f"H1×{h1_count} H2×{h2_count} H3×{h3_count} 正文×{total - h1_count - h2_count - h3_count}")
         print(f"         正文: 宋体小四 1.5倍行距 首行缩进2字符 两端对齐")
-        print(f"         一级标题: 黑体三号 居中 段前24pt段后12pt")
+        print(f"         一级标题: 黑体三号 左对齐 段前24pt段后12pt")
         print(f"         二级标题: 黑体四号 左对齐 段前12pt段后6pt")
         print(f"         三级标题: 黑体小四加粗 左对齐 段前6pt段后3pt")
 
