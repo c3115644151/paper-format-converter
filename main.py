@@ -33,20 +33,27 @@ except ImportError:
 # ============================================================
 
 FORMAT_PRESETS = {
-    # ---- 中文学位论文 (GB/T 7713.1 + GB/T 7714-2025 + 高校通用参数) ----
+    # ---- 中文学位论文 (GB/T 7713.1-2025 + GB/T 7714-2025 + 高校通用规范) ----
+    # 格式依据：
+    #   GB/T 7713.1-2025 §5.3.1: 每一章应另起页
+    #   GB/T 7713.1-2025 §6.10: 天头≥25mm,订口≥25mm,地角≥20mm,切口≥20mm
+    #   GB/T 7713.1-2025 §6.5: 章标题占2行,正文前空2字
+    #   高校通用: 正文宋体小四(12pt)首行缩进2字符1.5倍行距两端对齐
+    #   高校通用: 一级标题黑体三号(16pt)居中,二级黑体四号(14pt)左对齐,三级黑体小四(12pt)左对齐
+    # ============================================================
     "gbt7714": {
         "display_name": "GB/T 7714-2025 学位论文格式（中文）",
-        "description": "依据GB/T 7713.1-2006结构框架 + GB/T 7714-2025引用规范 + 中文学位论文排版标准（宋体正文、黑体标题、小四号、1.5倍行距、首行缩进2字符、两端对齐）",
+        "description": "依据GB/T 7713.1-2025 + 高校通用排版规范：宋体小四正文、黑体标题、首行缩进2字符、1.5倍行距、每一章另起页",
         "options": {
             "documentType": "report",
             "style": {
                 "fontFamily": "宋体",
-                "paragraphSize": 24,           # 小四号 ≈ 12pt (half-pts)
-                "heading1Size": 32,             # 一级标题三号 ≈ 16pt
-                "heading2Size": 28,             # 二级标题四号 ≈ 14pt
-                "heading3Size": 24,             # 三级标题小四 ≈ 12pt
+                "paragraphSize": 24,           # 小四号 12pt (half-pts)
+                "heading1Size": 32,             # 三号 16pt (half-pts)
+                "heading2Size": 28,             # 四号 14pt (half-pts)
+                "heading3Size": 24,             # 小四号 12pt (half-pts)
                 "lineSpacing": 1.5,
-                "headingSpacing": 12,           # 标题段前段后间距
+                "headingSpacing": 12,
                 "paragraphSpacing": 0,
                 "paragraphAlignment": "JUSTIFIED",
                 "headingAlignment": "LEFT",
@@ -54,10 +61,10 @@ FORMAT_PRESETS = {
             "template": {
                 "page": {
                     "margin": {
-                        "top": 1440,            # 2.54cm → twips
-                        "bottom": 1440,
-                        "left": 1800,           # 3.17cm → twips
-                        "right": 1800,
+                        "top": 1417,            # 2.5cm → twips
+                        "bottom": 1417,         # 2.5cm
+                        "left": 1701,           # 3.0cm（装订侧）
+                        "right": 1134,          # 2.0cm
                     }
                 }
             },
@@ -73,7 +80,7 @@ FORMAT_PRESETS = {
             {"type": "acknowledgement", "title": "致谢"},
         ],
         "csl_style": "gb-t-7714-2025-numeric",
-        "chinese_formatting": True,  # 启用中文格式后处理（首行缩进等）
+        "chinese_formatting": True,  # 启用中文格式后处理
     },
 
     # ---- APA 7th Edition ----
@@ -192,11 +199,14 @@ def build_options(format_name: str, custom_options: dict = None) -> dict:
 
 
 def apply_chinese_formatting(docx_path: str, verbose: bool = False) -> None:
-    """对生成的 DOCX 执行中文排版后处理。
+    """对 DOCX 执行中文论文格式标准后处理。
 
-    覆盖 md-to-docx 不支持的中文排版规范：
-    1. 正文段落首行缩进 2 字符
-    2. 标题保持无缩进、两端对齐确保
+    依据 GB/T 7713.1-2025 + 高校通用规范 全面校正格式：
+    - 正文：宋体小四(12pt)，1.5倍行距，首行缩进2字符，两端对齐
+    - 一级标题(章)：黑体三号(16pt)，居中，段前24pt段后12pt，另起页
+    - 二级标题(节)：黑体四号(14pt)，左对齐，段前12pt段后6pt
+    - 三级标题(子节)：黑体小四(12pt)加粗，左对齐，段前6pt段后3pt
+    - 英数：Times New Roman
     """
     if not HAS_PYTHON_DOCX:
         if verbose:
@@ -204,69 +214,160 @@ def apply_chinese_formatting(docx_path: str, verbose: bool = False) -> None:
         return
 
     import re
+    from docx.oxml.ns import qn
+    from docx.oxml import OxmlElement
+    from docx.enum.text import WD_LINE_SPACING
+    from docx.shared import Emu
+
     doc = Document(docx_path)
 
-    # 中文标题前缀模式
-    heading_patterns = re.compile(
+    # ── 常量 ──
+    # 字号（twips = 1/20pt）
+    SIZE_H1 = Pt(16)   # 三号
+    SIZE_H2 = Pt(14)   # 四号
+    SIZE_H3 = Pt(12)   # 小四
+    SIZE_BODY = Pt(12) # 小四
+
+    # 段前段后（pt）
+    SPACE_BEFORE_H1 = Pt(24)
+    SPACE_AFTER_H1 = Pt(12)
+    SPACE_BEFORE_H2 = Pt(12)
+    SPACE_AFTER_H2 = Pt(6)
+    SPACE_BEFORE_H3 = Pt(6)
+    SPACE_AFTER_H3 = Pt(3)
+
+    # 首行缩进2字符 = 2 * 12pt = 24pt = 480 twips
+    INDENT_TWIPS = 480
+
+    # ── 检测用正则 ──
+    # H1 模式：第一章 一、二、1 2、第一节 等
+    h1_pattern = re.compile(
         r'^('
-        r'[一二三四五六七八九十]+[\、\.\，]|'          # 一、 二、 等
-        r'[（\(][一二三四五六七八九十]+[）\)]|'         # （一）(二) 等
-        r'\d+[\、\.\．]|'                              # 1. 2. 等
-        r'[\(（]\d+[）\)]|'                             # (1) （2）等
-        r'第[一二三四五六七八九十百千]+[章节篇条]|'    # 第一章 等
-        r'前言|引言|绪论|摘要|Abstract|目录|参考文献|附录|致谢|结语|结论'
+        r'第[一二三四五六七八九十百千]+[章节篇条]|'  # 第一章
+        r'[一二三四五六七八九十]+[、\s]|'            # 一、二、
+        r'前言|引言|绪论|结语|结论|参考文献|附录|致谢'
         r')'
     )
+    # H2 模式：1.1 2.1 等
+    h2_pattern = re.compile(r'^\d+\.\d+\s')
 
-    # 中文字号: 小四=12pt, 2字符缩进=24pt=480twips
-    first_line_indent_twips = 480
+    def set_run_font(run, ea_font: str, ascii_font: str = 'Times New Roman',
+                     size: Pt = None, bold: bool = None):
+        """设置 run 的中文/西文字体"""
+        rPr = run._element.get_or_add_rPr()
+        rFonts = rPr.find(qn('w:rFonts'))
+        if rFonts is None:
+            rFonts = OxmlElement('w:rFonts')
+            rPr.insert(0, rFonts)
+        rFonts.set(qn('w:eastAsia'), ea_font)
+        rFonts.set(qn('w:ascii'), ascii_font)
+        rFonts.set(qn('w:hAnsi'), ascii_font)
+        if size is not None:
+            run.font.size = size
+        if bold is not None:
+            run.font.bold = bold
 
-    for para in doc.paragraphs:
+    def classify_paragraph(para, idx: int) -> str:
+        """返回 heading1 / heading2 / heading3 / body"""
+        text = para.text.strip()
+        if not text:
+            return 'body'
+
+        # 测量最大字号和是否加粗
+        max_size = 0
+        any_bold = False
+        for run in para.runs:
+            if run.font.size and run.font.size > max_size:
+                max_size = run.font.size
+            if run.bold:
+                any_bold = True
+
+        # 文字前缀判断
+        if h1_pattern.match(text):
+            return 'heading1'
+        if h2_pattern.match(text):
+            return 'heading2'
+
+        # 基于字号判断
+        if max_size >= Emu(16 * 12700):  # ≥ 16pt
+            return 'heading1'
+        if max_size >= Emu(14 * 12700):  # ≥ 14pt
+            return 'heading2'
+        # 加粗 + 字号 ≥ 12pt 或 加粗 + 短文本（标题特征）
+        if any_bold and max_size >= Emu(12 * 12700):
+            return 'heading3'
+        # 加粗短文本（无编号标题如"摘要""Abstract"）
+        if any_bold and len(text) <= 30:
+            return 'heading3'
+
+        return 'body'
+
+    total = len(doc.paragraphs)
+    prev_was_h1 = False
+
+    for idx, para in enumerate(doc.paragraphs):
+        pf = para.paragraph_format
         text = para.text.strip()
         if not text:
             continue
 
-        pf = para.paragraph_format
+        level = classify_paragraph(para, idx)
 
-        # 判断是否为标题段落
-        is_heading = False
-
-        # 检查 run 格式特征：标题通常加粗且字号 ≥ 14pt
-        for run in para.runs:
-            if run.font.size and run.font.size >= Pt(14):
-                is_heading = True
-                break
-            if run.bold and run.font.size and run.font.size >= Pt(13):
-                is_heading = True
-                break
-
-        # 检查文本前缀是否匹配标题模式
-        if not is_heading and heading_patterns.match(text):
-            is_heading = True
-
-        # 全文标题（无序号的首行）通过加粗+居中等特征判断
-        # 若全文第一段且加粗，视为标题
-        if not is_heading and para is doc.paragraphs[0]:
+        if level == 'heading1':
+            # 章标题：黑体三号(16pt)居中 段前24pt段后12pt 另起页
             for run in para.runs:
-                if run.bold:
-                    is_heading = True
-                    break
-
-        if is_heading:
-            # 标题：无首行缩进，左对齐
+                set_run_font(run, '黑体', 'Times New Roman', SIZE_H1, bold=True)
+            pf.alignment = WD_ALIGN_PARAGRAPH.CENTER
             pf.first_line_indent = None
-            if pf.alignment is None:
-                pf.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            pf.space_before = SPACE_BEFORE_H1
+            pf.space_after = SPACE_AFTER_H1
+            # 另起页（第一段不加分页符）
+            if idx > 0:
+                pf.page_break_before = True
+            prev_was_h1 = True
+
+        elif level == 'heading2':
+            # 节标题：黑体四号(14pt)左对齐 段前12pt段后6pt
+            for run in para.runs:
+                set_run_font(run, '黑体', 'Times New Roman', SIZE_H2, bold=True)
+            pf.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            pf.first_line_indent = None
+            pf.space_before = SPACE_BEFORE_H2
+            pf.space_after = SPACE_AFTER_H2
+            prev_was_h1 = False
+
+        elif level == 'heading3':
+            # 子节：黑体小四(12pt)加粗左对齐 段前6pt段后3pt
+            for run in para.runs:
+                set_run_font(run, '黑体', 'Times New Roman', SIZE_H3, bold=True)
+            pf.alignment = WD_ALIGN_PARAGRAPH.LEFT
+            pf.first_line_indent = None
+            pf.space_before = SPACE_BEFORE_H3
+            pf.space_after = SPACE_AFTER_H3
+            prev_was_h1 = False
+
         else:
-            # 正文：首行缩进2字符，两端对齐
-            if pf.first_line_indent is None:
-                pf.first_line_indent = Twips(first_line_indent_twips)
-            if pf.alignment is None:
-                pf.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            # 正文：宋体小四(12pt) 首行缩进2字符 两端对齐 1.5倍行距
+            for run in para.runs:
+                set_run_font(run, '宋体', 'Times New Roman', SIZE_BODY)
+            pf.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            pf.first_line_indent = Twips(INDENT_TWIPS)
+            pf.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
+            pf.space_before = Pt(0)
+            pf.space_after = Pt(0)
+            prev_was_h1 = False
 
     doc.save(docx_path)
     if verbose:
-        print(f"[后处理] 中文格式已应用（首行缩进2字符、两端对齐、标题无缩进）")
+        h1_count = sum(1 for p in doc.paragraphs if classify_paragraph(p, 0) == 'heading1')
+        h2_count = sum(1 for p in doc.paragraphs if classify_paragraph(p, 0) == 'heading2')
+        h3_count = sum(1 for p in doc.paragraphs if classify_paragraph(p, 0) == 'heading3')
+        print(f"[后处理] 中文论文格式已应用："
+              f"H1×{h1_count} H2×{h2_count} H3×{h3_count} 正文×{total - h1_count - h2_count - h3_count}")
+        print(f"         正文: 宋体小四 1.5倍行距 首行缩进2字符 两端对齐")
+        print(f"         一级标题: 黑体三号 居中 段前24pt段后12pt 另起页")
+        print(f"         二级标题: 黑体四号 左对齐 段前12pt段后6pt")
+        print(f"         三级标题: 黑体小四加粗 左对齐 段前6pt段后3pt")
 
 
 def run_md_to_docx(input_path: str, output_path: str, options: dict, verbose: bool = False) -> str:
