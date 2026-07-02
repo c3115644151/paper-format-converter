@@ -17,45 +17,63 @@ import sys
 import tempfile
 from pathlib import Path
 
+# 中文格式后处理（首行缩进、标题间距等）
+try:
+    from docx import Document
+    from docx.shared import Pt, Twips
+    from docx.enum.text import WD_ALIGN_PARAGRAPH
+    HAS_PYTHON_DOCX = True
+except ImportError:
+    HAS_PYTHON_DOCX = False
+
 # ============================================================
 # 论文格式规范 → md-to-docx 参数映射
-# 数据来源：GB/T 7713.1-2006、GB/T 7714-2025、APA 7th、MLA 9th、
-#           Chicago Manual of Style、IMRaD、中国人民大学学位论文规范
+# 数据来源：GB/T 7713.1-2006、GB/T 7714-2025、河北大学学位论文规范、
+#           APA 7th、MLA 9th、Chicago Manual of Style、IMRaD
 # ============================================================
 
 FORMAT_PRESETS = {
-    # ---- 中文学位论文 (GB/T 7713.1 + GB/T 7714-2025 + 通用排版参数) ----
+    # ---- 中文学位论文 (GB/T 7713.1 + GB/T 7714-2025 + 高校通用参数) ----
     "gbt7714": {
-        "display_name": "GB/T 7714-2025 学位论文格式",
-        "description": "依据GB/T 7713.1-2006结构框架 + GB/T 7714-2025引用规范 + 通用中文学位论文排版参数（A4，上2.54cm/下2.54cm/左3.17cm/右3.17cm，正文宋体小四/标题黑体三号/1.5倍行距）。适用于大多数中文学位论文通用场景，特殊高校规范请使用自定义覆写或选择专有预设",
+        "display_name": "GB/T 7714-2025 学位论文格式（中文）",
+        "description": "依据GB/T 7713.1-2006结构框架 + GB/T 7714-2025引用规范 + 中文学位论文排版标准（宋体正文、黑体标题、小四号、1.5倍行距、首行缩进2字符、两端对齐）",
         "options": {
-            "fontFamily": "宋体",
-            "paragraphSize": 12,          # 小四号 ≈ 12pt
-            "headingFontFamily": "黑体",
-            "headingSize": 16,            # 章标题三号 ≈ 16pt
-            "lineSpacing": 1.5,
-            "pageMarginTop": 2.54,
-            "pageMarginBottom": 2.54,
-            "pageMarginLeft": 3.17,
-            "pageMarginRight": 3.17,
+            "documentType": "report",
+            "style": {
+                "fontFamily": "宋体",
+                "paragraphSize": 24,           # 小四号 ≈ 12pt (half-pts)
+                "heading1Size": 32,             # 一级标题三号 ≈ 16pt
+                "heading2Size": 28,             # 二级标题四号 ≈ 14pt
+                "heading3Size": 24,             # 三级标题小四 ≈ 12pt
+                "lineSpacing": 1.5,
+                "headingSpacing": 12,           # 标题段前段后间距
+                "paragraphSpacing": 0,
+                "paragraphAlignment": "JUSTIFIED",
+                "headingAlignment": "LEFT",
+            },
+            "template": {
+                "page": {
+                    "margin": {
+                        "top": 1440,            # 2.54cm → twips
+                        "bottom": 1440,
+                        "left": 1800,           # 3.17cm → twips
+                        "right": 1800,
+                    }
+                }
+            },
         },
-    },
-
-    # ---- 中国人民大学研究生学位论文规范 (grs.ruc.edu.cn) ----
-    "ruc": {
-        "display_name": "中国人民大学研究生学位论文",
-        "description": "严格按照中国人民大学研究生院《研究生学位论文及其摘要的撰写和印制要求》（2018）排版参数（A4，上45mm/下40mm/左35mm/右30mm，正文宋体小四/章标题黑体小二号18pt/固定行距20pt≈1.67倍）。适合凝筝（陈尧）日常使用的RUC学位论文格式。注意：一级节标题(1.1)应为黑体小三号14pt、二级节标题(1.1.1)应为黑体小四号12pt，当前md-to-docx仅支持统一headingSize，节标题层级差异需后处理调整",
-        "options": {
-            "fontFamily": "宋体",
-            "paragraphSize": 12,          # 正文小四号12pt
-            "headingFontFamily": "黑体",
-            "headingSize": 18,            # 章标题小二号18pt（人大规范）
-            "lineSpacing": 1.67,          # 固定行距20pt / 12pt ≈ 1.67倍
-            "pageMarginTop": 4.5,         # 上45mm
-            "pageMarginBottom": 4.0,      # 下40mm
-            "pageMarginLeft": 3.5,        # 左35mm
-            "pageMarginRight": 3.0,       # 右30mm
-        },
+        "sections": [
+            {"type": "cover", "title": "封面"},
+            {"type": "abstract", "title": "摘要"},
+            {"type": "abstract_en", "title": "Abstract"},
+            {"type": "toc", "title": "目录"},
+            {"type": "body", "title": "正文"},
+            {"type": "references", "title": "参考文献"},
+            {"type": "appendix", "title": "附录"},
+            {"type": "acknowledgement", "title": "致谢"},
+        ],
+        "csl_style": "gb-t-7714-2025-numeric",
+        "chinese_formatting": True,  # 启用中文格式后处理（首行缩进等）
     },
 
     # ---- APA 7th Edition ----
@@ -71,6 +89,13 @@ FORMAT_PRESETS = {
             "pageMarginLeft": 2.54,
             "pageMarginRight": 2.54,
         },
+        "sections": [
+            {"type": "title_page", "title": ""},
+            {"type": "abstract", "title": "Abstract"},
+            {"type": "body", "title": ""},
+            {"type": "references", "title": "References"},
+            {"type": "appendix", "title": "Appendix"},
+        ],
     },
 
     # ---- MLA 9th Edition ----
@@ -86,6 +111,10 @@ FORMAT_PRESETS = {
             "pageMarginLeft": 2.54,
             "pageMarginRight": 2.54,
         },
+        "sections": [
+            {"type": "body", "title": ""},
+            {"type": "works_cited", "title": "Works Cited"},
+        ],
     },
 
     # ---- Chicago Manual of Style (Notes-Bibliography) ----
@@ -101,6 +130,11 @@ FORMAT_PRESETS = {
             "pageMarginLeft": 2.54,
             "pageMarginRight": 2.54,
         },
+        "sections": [
+            {"type": "title_page", "title": ""},
+            {"type": "body", "title": ""},
+            {"type": "bibliography", "title": "Bibliography"},
+        ],
     },
 
     # ---- IMRaD 国际学术论文结构 ----
@@ -109,13 +143,23 @@ FORMAT_PRESETS = {
         "description": "Introduction-Methods-Results-Discussion 标准科学论文结构。自然科学、医学、工程学投稿常用",
         "options": {
             "fontFamily": "Times New Roman",
-            "paragraphSize": 12,
-            "lineSpacing": 2.0,
+            "paragraphSize": 11,
+            "lineSpacing": 1.5,
             "pageMarginTop": 2.54,
             "pageMarginBottom": 2.54,
             "pageMarginLeft": 2.54,
             "pageMarginRight": 2.54,
         },
+        "sections": [
+            {"type": "title_page", "title": ""},
+            {"type": "abstract", "title": "Abstract"},
+            {"type": "introduction", "title": "Introduction"},
+            {"type": "methods", "title": "Methods"},
+            {"type": "results", "title": "Results"},
+            {"type": "discussion", "title": "Discussion"},
+            {"type": "conclusion", "title": "Conclusion"},
+            {"type": "references", "title": "References"},
+        ],
     },
 }
 
@@ -145,6 +189,84 @@ def build_options(format_name: str, custom_options: dict = None) -> dict:
         options.update(custom_options)
 
     return options
+
+
+def apply_chinese_formatting(docx_path: str, verbose: bool = False) -> None:
+    """对生成的 DOCX 执行中文排版后处理。
+
+    覆盖 md-to-docx 不支持的中文排版规范：
+    1. 正文段落首行缩进 2 字符
+    2. 标题保持无缩进、两端对齐确保
+    """
+    if not HAS_PYTHON_DOCX:
+        if verbose:
+            print("[警告] python-docx 不可用，跳过中文格式后处理")
+        return
+
+    import re
+    doc = Document(docx_path)
+
+    # 中文标题前缀模式
+    heading_patterns = re.compile(
+        r'^('
+        r'[一二三四五六七八九十]+[\、\.\，]|'          # 一、 二、 等
+        r'[（\(][一二三四五六七八九十]+[）\)]|'         # （一）(二) 等
+        r'\d+[\、\.\．]|'                              # 1. 2. 等
+        r'[\(（]\d+[）\)]|'                             # (1) （2）等
+        r'第[一二三四五六七八九十百千]+[章节篇条]|'    # 第一章 等
+        r'前言|引言|绪论|摘要|Abstract|目录|参考文献|附录|致谢|结语|结论'
+        r')'
+    )
+
+    # 中文字号: 小四=12pt, 2字符缩进=24pt=480twips
+    first_line_indent_twips = 480
+
+    for para in doc.paragraphs:
+        text = para.text.strip()
+        if not text:
+            continue
+
+        pf = para.paragraph_format
+
+        # 判断是否为标题段落
+        is_heading = False
+
+        # 检查 run 格式特征：标题通常加粗且字号 ≥ 14pt
+        for run in para.runs:
+            if run.font.size and run.font.size >= Pt(14):
+                is_heading = True
+                break
+            if run.bold and run.font.size and run.font.size >= Pt(13):
+                is_heading = True
+                break
+
+        # 检查文本前缀是否匹配标题模式
+        if not is_heading and heading_patterns.match(text):
+            is_heading = True
+
+        # 全文标题（无序号的首行）通过加粗+居中等特征判断
+        # 若全文第一段且加粗，视为标题
+        if not is_heading and para is doc.paragraphs[0]:
+            for run in para.runs:
+                if run.bold:
+                    is_heading = True
+                    break
+
+        if is_heading:
+            # 标题：无首行缩进，左对齐
+            pf.first_line_indent = None
+            if pf.alignment is None:
+                pf.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        else:
+            # 正文：首行缩进2字符，两端对齐
+            if pf.first_line_indent is None:
+                pf.first_line_indent = Twips(first_line_indent_twips)
+            if pf.alignment is None:
+                pf.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+    doc.save(docx_path)
+    if verbose:
+        print(f"[后处理] 中文格式已应用（首行缩进2字符、两端对齐、标题无缩进）")
 
 
 def run_md_to_docx(input_path: str, output_path: str, options: dict, verbose: bool = False) -> str:
@@ -275,15 +397,25 @@ def main():
         preset = FORMAT_PRESETS.get(args.format, {})
         format_name = preset.get("display_name", args.format)
 
+        # 中文格式后处理（首行缩进等）
+        if preset.get("chinese_formatting"):
+            try:
+                apply_chinese_formatting(result_path, args.verbose)
+                print(f"   中文格式: 首行缩进2字符、两端对齐 ✅")
+            except Exception as e:
+                print(f"   ⚠️ 中文格式后处理异常: {e}")
+
         print(f"✅ 转换完成")
         print(f"   输出: {result_path}")
         print(f"   格式: {format_name}")
 
         # 摘要关键参数
-        key_params = {k: options[k] for k in
+        style = options.get("style", {})
+        key_params = {k: style[k] for k in
                       ["fontFamily", "paragraphSize", "lineSpacing"]
-                      if k in options}
-        print(f"   参数: {json.dumps(key_params, ensure_ascii=False)}")
+                      if k in style}
+        if key_params:
+            print(f"   参数: {json.dumps(key_params, ensure_ascii=False)}")
 
     except ValueError as e:
         print(f"❌ 参数错误: {e}", file=sys.stderr)
