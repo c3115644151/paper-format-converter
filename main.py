@@ -33,17 +33,17 @@ except ImportError:
 # ============================================================
 
 FORMAT_PRESETS = {
-    # ---- 中文学位论文 (GB/T 7713.1-2025 + GB/T 7714-2025 + 高校通用规范) ----
-    # 格式依据：
-    #   GB/T 7713.1-2025 §5.3.1: 每一章应另起页
-    #   GB/T 7713.1-2025 §6.10: 天头≥25mm,订口≥25mm,地角≥20mm,切口≥20mm
-    #   GB/T 7713.1-2025 §6.5: 章标题占2行,正文前空2字
-    #   高校通用: 正文宋体小四(12pt)首行缩进2字符1.5倍行距两端对齐
-    #   高校通用: 一级标题黑体三号(16pt)居中,二级黑体四号(14pt)左对齐,三级黑体小四(12pt)左对齐
+    # ---- 中文学术论文常规格式（GB/T 7714 + 高校通用规范） ----
+    # 格式依据：多所高校（北大、清华、武大等）通用学术论文排版规范
+    #   页边距: 上2.5cm,下2.5cm,左3.0cm,右2.0cm
+    #   正文: 宋体小四(12pt)首行缩进2字符1.5倍行距两端对齐
+    #   一级标题: 黑体三号(16pt)居中,段前24pt段后12pt
+    #   二级标题: 黑体四号(14pt)左对齐,段前12pt段后6pt
+    #   三级标题: 黑体小四(12pt)加粗左对齐,段前6pt段后3pt
     # ============================================================
     "gbt7714": {
-        "display_name": "GB/T 7714-2025 学位论文格式（中文）",
-        "description": "依据GB/T 7713.1-2025 + 高校通用排版规范：宋体小四正文、黑体标题、首行缩进2字符、1.5倍行距、每一章另起页",
+        "display_name": "GB/T 7714 学术论文格式（中文）",
+        "description": "中文学术论文通用排版规范：宋体小四正文、黑体标题、首行缩进2字符、1.5倍行距",
         "options": {
             "documentType": "report",
             "style": {
@@ -201,9 +201,9 @@ def build_options(format_name: str, custom_options: dict = None) -> dict:
 def apply_chinese_formatting(docx_path: str, verbose: bool = False) -> None:
     """对 DOCX 执行中文论文格式标准后处理。
 
-    依据 GB/T 7713.1-2025 + 高校通用规范 全面校正格式：
+    依据高校通用学术论文排版规范 全面校正格式：
     - 正文：宋体小四(12pt)，1.5倍行距，首行缩进2字符，两端对齐
-    - 一级标题(章)：黑体三号(16pt)，居中，段前24pt段后12pt，另起页
+    - 一级标题(章)：黑体三号(16pt)，居中，段前24pt段后12pt
     - 二级标题(节)：黑体四号(14pt)，左对齐，段前12pt段后6pt
     - 三级标题(子节)：黑体小四(12pt)加粗，左对齐，段前6pt段后3pt
     - 英数：Times New Roman
@@ -303,7 +303,6 @@ def apply_chinese_formatting(docx_path: str, verbose: bool = False) -> None:
         return 'body'
 
     total = len(doc.paragraphs)
-    prev_was_h1 = False
 
     for idx, para in enumerate(doc.paragraphs):
         pf = para.paragraph_format
@@ -314,17 +313,13 @@ def apply_chinese_formatting(docx_path: str, verbose: bool = False) -> None:
         level = classify_paragraph(para, idx)
 
         if level == 'heading1':
-            # 章标题：黑体三号(16pt)居中 段前24pt段后12pt 另起页
+            # 章标题：黑体三号(16pt)居中 段前24pt段后12pt
             for run in para.runs:
                 set_run_font(run, '黑体', 'Times New Roman', SIZE_H1, bold=True)
             pf.alignment = WD_ALIGN_PARAGRAPH.CENTER
             pf.first_line_indent = None
             pf.space_before = SPACE_BEFORE_H1
             pf.space_after = SPACE_AFTER_H1
-            # 另起页（第一段不加分页符）
-            if idx > 0:
-                pf.page_break_before = True
-            prev_was_h1 = True
 
         elif level == 'heading2':
             # 节标题：黑体四号(14pt)左对齐 段前12pt段后6pt
@@ -334,7 +329,6 @@ def apply_chinese_formatting(docx_path: str, verbose: bool = False) -> None:
             pf.first_line_indent = None
             pf.space_before = SPACE_BEFORE_H2
             pf.space_after = SPACE_AFTER_H2
-            prev_was_h1 = False
 
         elif level == 'heading3':
             # 子节：黑体小四(12pt)加粗左对齐 段前6pt段后3pt
@@ -344,7 +338,6 @@ def apply_chinese_formatting(docx_path: str, verbose: bool = False) -> None:
             pf.first_line_indent = None
             pf.space_before = SPACE_BEFORE_H3
             pf.space_after = SPACE_AFTER_H3
-            prev_was_h1 = False
 
         else:
             # 正文：宋体小四(12pt) 首行缩进2字符 两端对齐 1.5倍行距
@@ -355,7 +348,6 @@ def apply_chinese_formatting(docx_path: str, verbose: bool = False) -> None:
             pf.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
             pf.space_before = Pt(0)
             pf.space_after = Pt(0)
-            prev_was_h1 = False
 
     doc.save(docx_path)
     if verbose:
@@ -365,7 +357,7 @@ def apply_chinese_formatting(docx_path: str, verbose: bool = False) -> None:
         print(f"[后处理] 中文论文格式已应用："
               f"H1×{h1_count} H2×{h2_count} H3×{h3_count} 正文×{total - h1_count - h2_count - h3_count}")
         print(f"         正文: 宋体小四 1.5倍行距 首行缩进2字符 两端对齐")
-        print(f"         一级标题: 黑体三号 居中 段前24pt段后12pt 另起页")
+        print(f"         一级标题: 黑体三号 居中 段前24pt段后12pt")
         print(f"         二级标题: 黑体四号 左对齐 段前12pt段后6pt")
         print(f"         三级标题: 黑体小四加粗 左对齐 段前6pt段后3pt")
 
